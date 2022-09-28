@@ -3,53 +3,22 @@ import pyautogui as pt
 import pandas as pd
 import time
 import pyperclip
+import googlemaps as gm #pip install googlemaps
 import re
 import os
 import math
 import json
 
-def AddressToLocation(address):
-    # web.open("https://www.google.com.mx/maps")
-    web.open("https://www.google.com")
-    coord = []
-    p1 = 536, 52  # click to Google search engine
-    p2 = 291, 175  # click on maps icon
-    p3 = 489, 60  # click to url
-    pobs3 = 170, 356  # click to optional directions (in case took us to other country)
+def AddressToLocation(address:str):
+    API_kye= 'AIzaSyCfr8v51ZbYG3gJNv_am_AgyuU0bRhzelM'
+    map_client = gm.Client(API_kye)
+    response = map_client.geocode(address)
+    locat = (response[0]['geometry']['location']['lat'],response[0]['geometry']['location']['lng'])
+    locat = str(locat)
+    locat = locat.replace("(","")
+    locat = locat.replace(")","")
+    return locat
 
-    # Start search
-    pt.click(p1)
-    time.sleep(2)
-
-    pt.typewrite(address)
-    pt.hotkey("ENTER")
-    time.sleep(5)
-    # pt.hotkey("Ctrl", "f")
-    # time.sleep(2)
-    # pt.typewrite("maps")
-    # time.sleep(2)
-    # pt.hotkey("Ctrl", "Enter")
-    pt.click(p2)
-    time.sleep(10)
-    pt.click(p3)
-    time.sleep(3)
-    pt.hotkey("Ctrl", "c")
-    a = re.findall("@\d+.\d+,-\d+.\d+", pyperclip.paste())
-    try:
-        a = re.sub("@", "", a[0])
-        coord.append(a)
-    except:
-        print("1 falla")
-        pt.click(pobs3)
-        time.sleep(9)
-        pt.click(p3)
-        time.sleep(3)
-        pt.hotkey("Ctrl", "c")
-        a = re.findall("@\d+.\d+,-\d+.\d+", pyperclip.paste())
-        a = re.sub("@", "", a[0])
-        coord.append(a)
-    coordinates = coord[0].replace(',', ', ')
-    return coordinates
 
 def CodeINEGI(coordinates):
     web.open("http://gaia.inegi.org.mx/mdm-client/?v=bGF0OjIzLjMyMDA4LGxvbjotMTAxLjUwMDAwLHo6MSxsOmMxMTFzZXJ2aWNpb3M=")

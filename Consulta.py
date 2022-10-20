@@ -90,7 +90,20 @@ def SocioEconmicLevel(geo_code):
     pob_18mas = search['P_18YMAS']
     pob_15mas = search['P_15YMAS']
     '''
-    escolaridad = float(search['GRAPROES'])
+
+    results_m = pd.read_csv('20221012/MZA_URB20.csv', encoding='iso-8859-1')
+    results_m = results_m.replace('*', 0)
+    results_m = results_m.replace('N.D.', 0)
+    results_m[results_m['PJEFES_GRAPROES'] == '.'] = results_m[results_m['PJEFES_GRAPROES'] == '.'].replace('.', 0)
+    results_m = results_m.fillna(0)
+    results_m['PJEFES_GRAPROES'] = results_m['PJEFES_GRAPROES'].astype(str)
+    results_m['PJEFES_GRAPROES'] = results_m['PJEFES_GRAPROES'].astype(float)
+    results_m[['VPH_1D', 'VPH_2D', 'VPH_3D', 'VPH_4YMASD','POCUPADA','VPH_NDA','VPH_DA']] = results_m[['VPH_1D','VPH_2D','VPH_3D','VPH_4YMASD', 'POCUPADA','VPH_NDA','VPH_DA']].astype(float)
+
+    search_m = results_m[(results_m['MUN'] == int(geo_code[2:5])) & (results_m['LOC'] == int(geo_code[5:9]))]
+    search_m = search_m[(search_m['AGEB'] == AGEB) & (search_m['MZA'] == int(geo_code[13:16]))]
+
+    escolaridad = float(search_m['PJEFES_GRAPROES'])
     # pob_escolar = int(pob_analfabeta)+int(pob_preescolar)+int(pob_primaria_incompleta)+int(pob_primaria_completa)+int(pob_secundaria_incompleta)+int(pob_secundaria_completa)
     if escolaridad == 0:
         nivel_educativo = 0
@@ -99,13 +112,16 @@ def SocioEconmicLevel(geo_code):
                     0.025092 * (escolaridad ** 3))
 
     # Variables for calculations
-    viviendas = search['TVIVPARHAB']
+     viviendas = search_m['VPH_NDA']+search_m['VPH_DA']
     viviendas_bano = search['VPH_EXCSA']  # or search['VPH_DSADMA']
     viviendas_automovil = search['VPH_AUTOM']
     viviendas_internet = search['VPH_INTER']
-    viviendas_1dormitorio = search['VPH_1DOR']
-    viviendas_2omasdormitorios = search['VPH_2YMASD']
-    personas_trabajadoras = search['PEA']
+    viviendas_1dormitorio = search_m['VPH_1D']#
+    viviendas_2dormitorio = search_m['VPH_2D']
+    viviendas_3dormitorio = search_m['VPH_3D']
+    viviendas_4omasdormitorios = search_m['VPH_4YMASD']
+    #viviendas_2omasdormitorios = search['VPH_2YMASD']
+    personas_trabajadoras = search_m['POCUPADA']
 
     # Restrooms
     nivel_banos = (int(viviendas_bano) * 47) / int(viviendas)
@@ -123,7 +139,8 @@ def SocioEconmicLevel(geo_code):
         nivel_empleados = -0.04286 + (14.86905 * empleados) + (0.42857 * (empleados ** 2)) - (
                     0.08333 * (empleados ** 3))
     # Bedrooms
-    nivel_dormitorios = (16 * int(viviendas_1dormitorio) + (32 * int(viviendas_2omasdormitorios))) / int(viviendas)
+    nivel_dormitorios = (8 * int(viviendas_1dormitorio) + (16 * int(viviendas_2dormitorio)) +
+                         (24 * int(viviendas_3dormitorio)) + (32 * int(viviendas_4omasdormitorios))) / int(viviendas)
     if nivel_dormitorios > 32:
         nivel_dormitorios = 32
 

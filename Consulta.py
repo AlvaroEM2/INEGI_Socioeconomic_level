@@ -63,13 +63,20 @@ def CodeINEGI(coordinates):
 def SocioEconmicLevel(geo_code):
     # Clean AGEB code
     AGEB = ''
-    if 'A' not in geo_code[9:13]:
-        for char in geo_code[9:13]:
+    MZN = ''
+    if 'A' not in cod[9:13]:
+        for char in cod[9:13]:
             if char != '0':
                 break
             else:
                 AGEB = AGEB + char
+        for chart in cod[13:16]:
+            if chart != '0':
+                break
+            else:
+                MZN = MZN + chart
     AGEB = geo_code[9:13].strip(AGEB)
+    MZN = geo_code[13:16].strip(MZN)
 
     entidad = geo_code[0:2]
     path = 'INEGI_data_manzanas/conjunto_de_datos_ageb_urbana_' + entidad + '_cpv2020.csv'
@@ -90,61 +97,134 @@ def SocioEconmicLevel(geo_code):
     pob_18mas = search['P_18YMAS']
     pob_15mas = search['P_15YMAS']
     '''
-    escolaridad = float(search['GRAPROES'])
-    # pob_escolar = int(pob_analfabeta)+int(pob_preescolar)+int(pob_primaria_incompleta)+int(pob_primaria_completa)+int(pob_secundaria_incompleta)+int(pob_secundaria_completa)
-    if escolaridad == 0:
-        nivel_educativo = 0
+
+    results_m = pd.read_csv('20221012/MZA_URB20.csv', encoding='iso-8859-1')
+
+    search_m = results_m[(results_m['MUN'] == int(geo_code[2:5])) & (results_m['LOC'] == int(geo_code[5:9]))]
+    search_m = search_m[(search_m['AGEB'] == geo_code[9:13]) & (search_m['MZA'] == int(MZN))]
+    search_m = search_m.replace('*', 0)
+    search_m = search_m.replace('N.D.', 0)
+    search_m = search_m.replace('.', 0)
+
+    if (search_m.iloc[0,1] == search.iloc[0,1] and search_m.iloc[0,2] == search.iloc[0,2] and search_m.iloc[0,3] == search.iloc[0,3] and search_m.iloc[0,4] == search.iloc[0,4] and search_m.iloc[0,5] == search.iloc[0,5] and float(search_m.iloc[0,6]) == float(search.iloc[0,6]) and float(search_m.iloc[0,7]) == float(search.iloc[0,7])):
+
+        escolaridad = float(search_m['PJEFES_GRAPROES'])
+        # pob_escolar = int(pob_analfabeta)+int(pob_preescolar)+int(pob_primaria_incompleta)+int(pob_primaria_completa)+int(pob_secundaria_incompleta)+int(pob_secundaria_completa)
+        if escolaridad == 0:
+            nivel_educativo = 0
+        else:
+            nivel_educativo = -0.112257 + (2.99372 * escolaridad) - (0.352511 * (escolaridad ** 2)) + (
+                        0.025092 * (escolaridad ** 3))
+
+        # Variables for calculations
+        viviendas = max(float(search_m['VPH_TAZA']), float(search_m['VPH_NDA']) + float(search_m['VPH_DA']),
+                        float(search_m['VPH_1D']) + float(search_m['VPH_2D']) + float(search_m['VPH_3D']) + float(search_m['VPH_4YMASD']))
+        banos = float(search_m['VPH_TAZA'])
+        viviendas_bano = search['VPH_EXCSA']  # or search['VPH_DSADMA']
+        viviendas_automovil = search['VPH_AUTOM']
+        viviendas_internet = search['VPH_INTER']
+        viviendas_1dormitorio = float(search_m['VPH_1D'])#
+        viviendas_2dormitorio = float(search_m['VPH_2D'])
+        viviendas_3dormitorio = float(search_m['VPH_3D'])
+        viviendas_4omasdormitorios = float(search_m['VPH_4YMASD'])
+        #viviendas_2omasdormitorios = search['VPH_2YMASD']
+        personas_trabajadoras = float(search_m['POCUPADA'])
+
+        # Restrooms
+        nivel_banos = (int(viviendas_bano) * 47) / int(viviendas)
+        # Automobile
+        nivel_auto = (int(viviendas_automovil) * 43) / int(viviendas)
+        # Internet
+        nivel_internet = (int(viviendas_internet) * 32) / int(viviendas)
+        # Workers
+        empleados = int(personas_trabajadoras) / int(viviendas)
+        if empleados == 0:
+            nivel_empleados = 0
+        elif empleados > 4:
+            nivel_empleados = 61
+        else:
+            nivel_empleados = -0.04286 + (14.86905 * empleados) + (0.42857 * (empleados ** 2)) - (
+                        0.08333 * (empleados ** 3))
+        # Bedrooms
+        nivel_dormitorios = (8 * int(viviendas_1dormitorio) + (16 * int(viviendas_2dormitorio)) +
+                             (24 * int(viviendas_3dormitorio)) + (32 * int(viviendas_4omasdormitorios))) / int(viviendas)
+        if nivel_dormitorios > 32:
+            nivel_dormitorios = 32
+
+        # Score
+        puntos = nivel_educativo + nivel_banos + nivel_auto + nivel_empleados + nivel_internet + nivel_dormitorios
+        if puntos > 201:
+            nivel_socioeconomico = 7
+        elif puntos > 167:
+            nivel_socioeconomico = 6
+        elif puntos > 140:
+            nivel_socioeconomico = 5
+        elif puntos > 115:
+            nivel_socioeconomico = 4
+        elif puntos > 94:
+            nivel_socioeconomico = 3
+        elif puntos > 47:
+            nivel_socioeconomico = 2
+        else:
+            nivel_socioeconomico = 1
+
+        return nivel_socioeconomico
     else:
-        nivel_educativo = -0.112257 + (2.99372 * escolaridad) - (0.352511 * (escolaridad ** 2)) + (
-                    0.025092 * (escolaridad ** 3))
+        escolaridad = float(search['GRAPROES'])
+        # pob_escolar = int(pob_analfabeta)+int(pob_preescolar)+int(pob_primaria_incompleta)+int(pob_primaria_completa)+int(pob_secundaria_incompleta)+int(pob_secundaria_completa)
+        if escolaridad == 0:
+            nivel_educativo = 0
+        else:
+            nivel_educativo = -0.112257 + (2.99372 * escolaridad) - (0.352511 * (escolaridad ** 2)) + (
+                        0.025092 * (escolaridad ** 3))
 
-    # Variables for calculations
-    viviendas = search['TVIVPARHAB']
-    viviendas_bano = search['VPH_EXCSA']  # or search['VPH_DSADMA']
-    viviendas_automovil = search['VPH_AUTOM']
-    viviendas_internet = search['VPH_INTER']
-    viviendas_1dormitorio = search['VPH_1DOR']
-    viviendas_2omasdormitorios = search['VPH_2YMASD']
-    personas_trabajadoras = search['PEA']
+        # Variables for calculations
+        viviendas = search['TVIVPARHAB']
+        viviendas_bano = search['VPH_EXCSA']  # or search['VPH_DSADMA']
+        viviendas_automovil = search['VPH_AUTOM']
+        viviendas_internet = search['VPH_INTER']
+        viviendas_1dormitorio = search['VPH_1DOR']
+        viviendas_2omasdormitorios = search['VPH_2YMASD']
+        personas_trabajadoras = search['PEA']
 
-    # Restrooms
-    nivel_banos = (int(viviendas_bano) * 47) / int(viviendas)
-    # Automobile
-    nivel_auto = (int(viviendas_automovil) * 43) / int(viviendas)
-    # Internet
-    nivel_internet = (int(viviendas_internet) * 32) / int(viviendas)
-    # Workers
-    empleados = int(personas_trabajadoras) / int(viviendas)
-    if empleados == 0:
-        nivel_empleados = 0
-    elif empleados > 4:
-        nivel_empleados = 61
-    else:
-        nivel_empleados = -0.04286 + (14.86905 * empleados) + (0.42857 * (empleados ** 2)) - (
-                    0.08333 * (empleados ** 3))
-    # Bedrooms
-    nivel_dormitorios = (16 * int(viviendas_1dormitorio) + (32 * int(viviendas_2omasdormitorios))) / int(viviendas)
-    if nivel_dormitorios > 32:
-        nivel_dormitorios = 32
+        # Restrooms
+        nivel_banos = (int(viviendas_bano) * 47) / int(viviendas)
+        # Automobile
+        nivel_auto = (int(viviendas_automovil) * 43) / int(viviendas)
+        # Internet
+        nivel_internet = (int(viviendas_internet) * 32) / int(viviendas)
+        # Workers
+        empleados = int(personas_trabajadoras) / int(viviendas)
+        if empleados == 0:
+            nivel_empleados = 0
+        elif empleados > 4:
+            nivel_empleados = 61
+        else:
+            nivel_empleados = -0.04286 + (14.86905 * empleados) + (0.42857 * (empleados ** 2)) - (
+                        0.08333 * (empleados ** 3))
+        # Bedrooms
+        nivel_dormitorios = (16 * int(viviendas_1dormitorio) + (32 * int(viviendas_2omasdormitorios))) / int(viviendas)
+        if nivel_dormitorios > 32:
+            nivel_dormitorios = 32
 
-    # Score
-    puntos = nivel_educativo + nivel_banos + nivel_auto + nivel_empleados + nivel_internet + nivel_dormitorios
-    if puntos > 201:
-        nivel_socioeconomico = 7
-    elif puntos > 167:
-        nivel_socioeconomico = 6
-    elif puntos > 140:
-        nivel_socioeconomico = 5
-    elif puntos > 115:
-        nivel_socioeconomico = 4
-    elif puntos > 94:
-        nivel_socioeconomico = 3
-    elif puntos > 47:
-        nivel_socioeconomico = 2
-    else:
-        nivel_socioeconomico = 1
+        # Score
+        puntos = nivel_educativo + nivel_banos + nivel_auto + nivel_empleados + nivel_internet + nivel_dormitorios
+        if puntos > 201:
+            nivel_socioeconomico = 7
+        elif puntos > 167:
+            nivel_socioeconomico = 6
+        elif puntos > 140:
+            nivel_socioeconomico = 5
+        elif puntos > 115:
+            nivel_socioeconomico = 4
+        elif puntos > 94:
+            nivel_socioeconomico = 3
+        elif puntos > 47:
+            nivel_socioeconomico = 2
+        else:
+            nivel_socioeconomico = 1
 
-    return nivel_socioeconomico
+        return nivel_socioeconomico
 
 # with open('alv.json', encoding='UTF-8') as file:
 #     Buro = json.load(file)

@@ -3,7 +3,7 @@ import pyautogui as pt
 import pandas as pd
 import time
 import pyperclip
-import googlemaps as gm #pip install googlemaps
+import googlemaps as gm #
 import re
 import os
 import math
@@ -79,29 +79,18 @@ def SocioEconmicLevel(geo_code):
     # Data cleaning
     search = search.replace('*', 0)
     # Scholar level calculation
-    '''
-    pob_analfabeta = search['P15YM_AN']
-    pob_preescolar = search['P15YM_SE']
-    pob_primaria_incompleta = search['P15PRI_IN']
-    pob_primaria_completa = search['P15PRI_CO']
-    pob_secundaria_incompleta = search['P15SEC_IN']
-    pob_secundaria_completa = search['P15SEC_CO']
-    pob_posbasica = search['P18YM_PB']
-    pob_18mas = search['P_18YMAS']
-    pob_15mas = search['P_15YMAS']
-    '''
 
-    results_m = pd.read_csv('20221012/MZA_URB20.csv', encoding='iso-8859-1')
-    results_m = results_m.replace('*', 0)
-    results_m = results_m.replace('N.D.', 0)
-    results_m[results_m['PJEFES_GRAPROES'] == '.'] = results_m[results_m['PJEFES_GRAPROES'] == '.'].replace('.', 0)
-    results_m = results_m.fillna(0)
-    results_m['PJEFES_GRAPROES'] = results_m['PJEFES_GRAPROES'].astype(str)
-    results_m['PJEFES_GRAPROES'] = results_m['PJEFES_GRAPROES'].astype(float)
-    results_m[['VPH_1D', 'VPH_2D', 'VPH_3D', 'VPH_4YMASD','POCUPADA','VPH_NDA','VPH_DA']] = results_m[['VPH_1D','VPH_2D','VPH_3D','VPH_4YMASD', 'POCUPADA','VPH_NDA','VPH_DA']].astype(float)
-
+    results_m = pd.read_csv('INEGI_data_manzanas/MZA_URB20.csv', encoding='iso-8859-1')
     search_m = results_m[(results_m['MUN'] == int(geo_code[2:5])) & (results_m['LOC'] == int(geo_code[5:9]))]
     search_m = search_m[(search_m['AGEB'] == AGEB) & (search_m['MZA'] == int(geo_code[13:16]))]
+    search_m = search_m.replace('*', 0)
+    search_m = search_m.replace('N.D.', 0)
+    search_m[search_m['PJEFES_GRAPROES'] == '.'] = search_m[search_m['PJEFES_GRAPROES'] == '.'].replace('.', 0)
+    search_m = search_m.fillna(0)
+    search_m['PJEFES_GRAPROES'] = search_m['PJEFES_GRAPROES'].astype(str)
+    search_m['PJEFES_GRAPROES'] = search_m['PJEFES_GRAPROES'].astype(float)
+    search_m[['VPH_1D', 'VPH_2D', 'VPH_3D', 'VPH_4YMASD', 'POCUPADA', 'VPH_NDA', 'VPH_DA']] = search_m[
+        ['VPH_1D', 'VPH_2D', 'VPH_3D', 'VPH_4YMASD', 'POCUPADA', 'VPH_NDA', 'VPH_DA']].astype(float)
 
     escolaridad = float(search_m['PJEFES_GRAPROES'])
     # pob_escolar = int(pob_analfabeta)+int(pob_preescolar)+int(pob_primaria_incompleta)+int(pob_primaria_completa)+int(pob_secundaria_incompleta)+int(pob_secundaria_completa)
@@ -112,7 +101,7 @@ def SocioEconmicLevel(geo_code):
                     0.025092 * (escolaridad ** 3))
 
     # Variables for calculations
-     viviendas = search_m['VPH_NDA']+search_m['VPH_DA']
+    viviendas = search_m['VPH_NDA']+search_m['VPH_DA']
     viviendas_bano = search['VPH_EXCSA']  # or search['VPH_DSADMA']
     viviendas_automovil = search['VPH_AUTOM']
     viviendas_internet = search['VPH_INTER']
